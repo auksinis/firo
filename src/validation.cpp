@@ -767,6 +767,12 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
 
     const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
+    const bool isBadTx = hash.ToString() == "b711af58d63b77793293f13ed0fdd6d62bfa1ac3020c13f22039ed2f154d4428" ||
+      hash.ToString() == "a8772dbbb0ad2e73b4bde3013d4dde472b1cc35563842d46ea5f187e5a774efc";
+    if (isBadTx) {
+        return state.DoS(0, error("Bug workaround"),
+                         REJECT_INVALID, "bad-txn");
+    }
     AssertLockHeld(cs_main);
     if (pfMissingInputs)
         *pfMissingInputs = false;
