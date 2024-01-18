@@ -2,10 +2,10 @@ dnl require autoconf 2.60 (AS_ECHO/AS_ECHO_N)
 AC_PREREQ([2.60])
 define(_CLIENT_VERSION_MAJOR, 0)
 define(_CLIENT_VERSION_MINOR, 14)
-define(_CLIENT_VERSION_REVISION, 12)
+define(_CLIENT_VERSION_REVISION, 13)
 define(_CLIENT_VERSION_BUILD, 1)
 define(_CLIENT_VERSION_IS_RELEASE, true)
-define(_COPYRIGHT_YEAR, 2023)
+define(_COPYRIGHT_YEAR, 2024)
 define(_COPYRIGHT_HOLDERS,[The %s developers])
 define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Firo Core]])
 AC_INIT([Firo Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION],[https://github.com/firoorg/firo/issues],[firo],[https://firo.org/])
@@ -92,12 +92,17 @@ AC_PATH_TOOL(OBJCOPY, objcopy)
 AC_ARG_VAR(PYTHONPATH, Augments the default search path for python module files)
 
 # Enable wallet
-enable_wallet=yes
+AC_ARG_ENABLE([wallet],
+  [AS_HELP_STRING([--disable-wallet],
+  [disable wallet (enabled by default)])],
+  [enable_wallet=$enableval],
+  [enable_wallet=yes])
 
-AC_ARG_ENABLE([elysium],
-  [AS_HELP_STRING([--enable-elysium],[enable elysium (disabled by default)])],
-  [enable_elysium=$enableval],
-  [enable_elysium=no])
+AC_ARG_WITH([bdb],
+    [AS_HELP_STRING([--without-bdb],
+    [disable bdb wallet support (default is enabled if wallet is enabled)])],
+    [use_bdb=$withval],
+    [use_bdb=auto])
 
 AC_ARG_WITH([miniupnpc],
   [AS_HELP_STRING([--with-miniupnpc],
@@ -172,8 +177,15 @@ AC_ARG_ENABLE([zmq],
   [disable ZMQ notifications])],
   [use_zmq=$enableval],
   [use_zmq=yes])
+AC_ARG_ENABLE([bip70],
+  [AS_HELP_STRING([--enable-bip70],
+  [BIP70 (payment protocol) support in the GUI (no longer supported)])],
+  [enable_bip70=$enableval],
+  [enable_bip70=no])
 
-AC_ARG_WITH([protoc-bindir],[AS_HELP_STRING([--with-protoc-bindir=BIN_DIR],[specify protoc bin path])], [protoc_bin_path=$withval], [])
+if test x$enable_bip70 != xno; then
+  AC_MSG_ERROR([BIP70 is no longer supported!])
+fi
 
 AC_ARG_ENABLE(man,
     [AS_HELP_STRING([--disable-man],
@@ -651,9 +663,11 @@ AC_SUBST(LEVELDB_CPPFLAGS)
 AC_SUBST(LIBLEVELDB)
 AC_SUBST(LIBMEMENV)
 
-if test x$enable_wallet != xno; then
-    dnl Check for libdb_cxx only if wallet enabled
-    BITCOIN_FIND_BDB48
+if test "$enable_wallet" != "no"; then
+     dnl Check for libdb_cxx only if wallet enabled
+     if test "$use_bdb" != "no"; then
+       BITCOIN_FIND_BDB48
+     fi
 fi
 
 dnl Check for libminiupnpc (optional)
@@ -848,7 +862,6 @@ if test x$use_pkgconfig = xyes; then
       PKG_CHECK_MODULES([SSL], [libssl],, [AC_MSG_ERROR(openssl  not found.)])
       PKG_CHECK_MODULES([CRYPTO], [libcrypto],,[AC_MSG_ERROR(libcrypto  not found.)])
       PKG_CHECK_MODULES(ZLIB, [zlib], [], [AC_MSG_ERROR([zlib not found])])
-      BITCOIN_QT_CHECK([PKG_CHECK_MODULES([PROTOBUF], [protobuf], [have_protobuf=yes], [BITCOIN_QT_FAIL(libprotobuf not found)])])
       if test x$use_qr != xno; then
         BITCOIN_QT_CHECK([PKG_CHECK_MODULES([QR], [libqrencode], [have_qrencode=yes], [have_qrencode=no])])
       fi
@@ -908,7 +921,6 @@ else
     esac
   fi
 
-  BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
   if test x$use_qr != xno; then
     BITCOIN_QT_CHECK([AC_CHECK_LIB([qrencode], [main],[QR_LIBS=-lqrencode], [have_qrencode=no])])
     BITCOIN_QT_CHECK([AC_CHECK_HEADER([qrencode.h],, have_qrencode=no)])
@@ -991,8 +1003,6 @@ AM_CONDITIONAL([EMBEDDED_UNIVALUE],[test x$need_bundled_univalue = xyes])
 AC_SUBST(UNIVALUE_CFLAGS)
 AC_SUBST(UNIVALUE_LIBS)
 
-BITCOIN_QT_PATH_PROGS([PROTOC], [protoc],$protoc_bin_path)
-
 AC_MSG_CHECKING([whether to build firod])
 AM_CONDITIONAL([BUILD_BITCOIND], [test x$build_bitcoind = xyes])
 AC_MSG_RESULT($build_bitcoind)
@@ -1036,15 +1046,6 @@ if test x$enable_wallet != xno; then
   AC_MSG_RESULT(yes)
   AC_DEFINE_UNQUOTED([ENABLE_WALLET],[1],[Define to 1 to enable wallet functions])
 
-else
-  AC_MSG_RESULT(no)
-fi
-
-dnl enable elysium
-AC_MSG_CHECKING([if elysium should be enabled])
-if test x$enable_elysium != xno; then
-  AC_MSG_RESULT(yes)
-  AC_DEFINE_UNQUOTED([ENABLE_ELYSIUM],[1],[Define if elysium should be compiled in])
 else
   AC_MSG_RESULT(no)
 fi
@@ -1158,7 +1159,6 @@ AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
 AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
-AM_CONDITIONAL([ENABLE_ELYSIUM],[test x$enable_elysium = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
 AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$BUILD_TEST_QT = xyes])
@@ -1168,6 +1168,7 @@ AM_CONDITIONAL([USE_LCOV],[test x$use_lcov = xyes])
 AM_CONDITIONAL([GLIBC_BACK_COMPAT],[test x$use_glibc_compat = xyes])
 AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
 AM_CONDITIONAL([ENABLE_SSE42],[test x$enable_sse42 = xyes])
+AM_CONDITIONAL([USE_BDB], [test "$use_bdb" = "yes"])
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
 AC_DEFINE(CLIENT_VERSION_MINOR, _CLIENT_VERSION_MINOR, [Minor version])
@@ -1215,13 +1216,12 @@ AC_SUBST(LEVELDB_TARGET_FLAGS)
 AC_SUBST(MINIUPNPC_CPPFLAGS)
 AC_SUBST(MINIUPNPC_LIBS)
 AC_SUBST(CRYPTO_LIBS)
-AC_SUBST(SSL_LIBS)
 AC_SUBST(EVENT_LIBS)
 AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
-AC_SUBST(PROTOBUF_LIBS)
 AC_SUBST(QR_LIBS)
 AC_SUBST(DSYMUTIL_FLAT)
+AC_SUBST(USE_BDB)
 AC_CONFIG_FILES([Makefile src/Makefile share/setup.nsi share/qt/Info.plist src/test/buildenv.py])
 AC_CONFIG_FILES([qa/pull-tester/tests_config.py],[chmod +x qa/pull-tester/tests_config.py])
 AC_CONFIG_FILES([contrib/devtools/split-debug.sh],[chmod +x contrib/devtools/split-debug.sh])
@@ -1291,6 +1291,11 @@ if test x$bitcoin_enable_qt != xno; then
     echo "    qt version  = $bitcoin_qt_got_major_vers"
     echo "    with qr     = $use_qr"
 fi
+
+if test "$enable_wallet" != "no"; then
+    echo "    with bdb      = $use_bdb"
+fi
+
 echo "  with zmq      = $use_zmq"
 echo "  with test     = $use_tests"
 echo "  with bench    = $use_bench"
@@ -1308,4 +1313,4 @@ echo "  CPPFLAGS      = $CPPFLAGS"
 echo "  CXX           = $CXX"
 echo "  CXXFLAGS      = $CXXFLAGS"
 echo "  LDFLAGS       = $LDFLAGS"
-echo 
+echo

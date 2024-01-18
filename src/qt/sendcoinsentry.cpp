@@ -24,6 +24,10 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
 {
     ui->setupUi(this);
 
+    QIcon icon_;
+    icon_.addFile(QString::fromUtf8(":/icons/ic_warning"), QSize(), QIcon::Normal, QIcon::On);
+    ui->iconWarning->setPixmap(icon_.pixmap(18, 18));
+
     ui->addressBookButton->setIcon(platformStyle->SingleColorIcon(":/icons/address-book"));
     ui->pasteButton->setIcon(platformStyle->SingleColorIcon(":/icons/editpaste"));
     ui->deleteButton->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
@@ -118,6 +122,17 @@ void SendCoinsEntry::deleteClicked()
     Q_EMIT removeEntry(this);
 }
 
+void SendCoinsEntry::setWarning(bool fAnonymousMode)
+{
+    if(fAnonymousMode) {
+        ui->textWarning->hide();
+        ui->iconWarning->hide();
+    } else {
+        ui->textWarning->show();
+        ui->iconWarning->show();
+    }
+}
+
 bool SendCoinsEntry::validate()
 {
     if (!model)
@@ -126,12 +141,8 @@ bool SendCoinsEntry::validate()
     // Check input validity
     bool retval = true;
 
-    // Skip checks for payment request
-    if (recipient.paymentRequest.IsInitialized())
-        return retval;
-
     isPcodeEntry = bip47::CPaymentCode::validate(ui->payTo->text().toStdString());
-    if (!(model->validateAddress(ui->payTo->text()) || isPcodeEntry))
+    if (!(model->validateAddress(ui->payTo->text()) || model->validateSparkAddress(ui->payTo->text()) || isPcodeEntry))
     {
         ui->payTo->setValid(false);
         retval = false;
@@ -160,11 +171,6 @@ bool SendCoinsEntry::validate()
 
 SendCoinsRecipient SendCoinsEntry::getValue()
 {
-    // Payment request
-    if (recipient.paymentRequest.IsInitialized())
-        return recipient;
-
-    // Normal payment
     recipient.address = ui->payTo->text();
     recipient.label = ui->addAsLabel->text();
     recipient.amount = ui->payAmount->value();
@@ -189,27 +195,6 @@ QWidget *SendCoinsEntry::setupTabChain(QWidget *prev)
 void SendCoinsEntry::setValue(const SendCoinsRecipient &value)
 {
     recipient = value;
-
-    if (recipient.paymentRequest.IsInitialized()) // payment request
-    {
-        if (recipient.authenticatedMerchant.isEmpty()) // unauthenticated
-        {
-            ui->payTo_is->setText(recipient.address);
-            ui->memoTextLabel_is->setText(recipient.message);
-            ui->payAmount_is->setValue(recipient.amount);
-            ui->payAmount_is->setReadOnly(true);
-            setCurrentWidget(ui->SendCoins_UnauthenticatedPaymentRequest);
-        }
-        else // authenticated
-        {
-            ui->payTo_s->setText(recipient.authenticatedMerchant);
-            ui->memoTextLabel_s->setText(recipient.message);
-            ui->payAmount_s->setValue(recipient.amount);
-            ui->payAmount_s->setReadOnly(true);
-            setCurrentWidget(ui->SendCoins_AuthenticatedPaymentRequest);
-        }
-    }
-    else // normal payment
     {
         // message
         ui->messageTextLabel->setText(recipient.message);

@@ -24,7 +24,7 @@
 #include "wallet/walletdb.h"
 #endif
 
-#include <QNetworkProxy>
+#include <QDebug>
 #include <QSettings>
 #include <QStringList>
 
@@ -80,10 +80,6 @@ void OptionsModel::Init(bool resetSettings)
     if (!settings.contains("fCoinControlFeatures"))
         settings.setValue("fCoinControlFeatures", false);
     fCoinControlFeatures = settings.value("fCoinControlFeatures", false).toBool();
-
-    if (!settings.contains("fenableRapAddresses"))
-        settings.setValue("fenableRapAddresses", false);
-    fenableRapAddresses = settings.value("fenableRapAddresses", false).toBool();
 
     if (!settings.contains("fAutoAnonymize"))
         settings.setValue("fAutoAnonymize", false);
@@ -281,8 +277,6 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
             return settings.value("language");
         case CoinControlFeatures:
             return fCoinControlFeatures;
-        case enableRapAddresses:
-            return fenableRapAddresses;
         case AutoAnonymize:
             return fAutoAnonymize;
         case LelantusPage:
@@ -430,11 +424,6 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             settings.setValue("fCoinControlFeatures", fCoinControlFeatures);
             Q_EMIT coinControlFeaturesChanged(fCoinControlFeatures);
             break;
-        case enableRapAddresses:
-            fenableRapAddresses = value.toBool();
-            settings.setValue("fenableRapAddresses", fenableRapAddresses);
-            Q_EMIT enableRapAddressesChanged(fenableRapAddresses);
-            break;
         case AutoAnonymize:
             fAutoAnonymize = value.toBool();
             settings.setValue("fAutoAnonymize", fAutoAnonymize);
@@ -483,24 +472,6 @@ void OptionsModel::setDisplayUnit(const QVariant &value)
         settings.setValue("nDisplayUnit", nDisplayUnit);
         Q_EMIT displayUnitChanged(nDisplayUnit);
     }
-}
-
-bool OptionsModel::getProxySettings(QNetworkProxy& proxy) const
-{
-    // Directly query current base proxy, because
-    // GUI settings can be overridden with -proxy.
-    proxyType curProxy;
-    if (GetProxy(NET_IPV4, curProxy)) {
-        proxy.setType(QNetworkProxy::Socks5Proxy);
-        proxy.setHostName(QString::fromStdString(curProxy.proxy.ToStringIP()));
-        proxy.setPort(curProxy.proxy.GetPort());
-
-        return true;
-    }
-    else
-        proxy.setType(QNetworkProxy::NoProxy);
-
-    return false;
 }
 
 void OptionsModel::setRestartRequired(bool fRequired)

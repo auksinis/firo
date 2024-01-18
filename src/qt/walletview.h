@@ -15,10 +15,6 @@
 #include "masternodelist.h"
 #include "lelantusdialog.h"
 
-#ifdef ENABLE_ELYSIUM
-#include "elyassetsdialog.h"
-#endif
-
 #include <QStackedWidget>
 
 class BitcoinGUI;
@@ -28,16 +24,8 @@ class PlatformStyle;
 class ReceiveCoinsDialog;
 class CreatePcodeDialog;
 class SendCoinsDialog;
-class SendMPDialog;
-class TradeHistoryDialog;
-class LookupSPDialog;
-class LookupTXDialog;
-class LookupAddressDialog;
-class MetaDExDialog;
-class MetaDExCancelDialog;
 class SendCoinsRecipient;
 class TransactionView;
-class TXHistoryDialog;
 class WalletModel;
 class AddressBookPage;
 
@@ -81,9 +69,6 @@ public:
 private:
     void setupTransactionPage();
     void setupSendCoinPage();
-#ifdef ENABLE_ELYSIUM
-    void setupToolboxPage();
-#endif
     void setupLelantusPage();
 
 private:
@@ -91,14 +76,6 @@ private:
     WalletModel *walletModel;
 
     OverviewPage *overviewPage;
-#ifdef ENABLE_ELYSIUM
-    ElyAssetsDialog *elyAssetsPage;
-    QWidget *toolboxPage;
-    TXHistoryDialog *elysiumTransactionsView;
-    QTabWidget *transactionTabs;
-    SendMPDialog *sendElysiumView;
-    QTabWidget *sendCoinsTabs;
-#endif
     QWidget *transactionsPage;
     QWidget *smartPropertyPage;
     ReceiveCoinsDialog *receiveCoinsPage;
@@ -107,9 +84,6 @@ private:
     AddressBookPage *usedReceivingAddressesPage;
     QWidget *sendCoinsPage;
     SendCoinsDialog *sendFiroView;
-    TradeHistoryDialog *tradeHistoryTab;
-    MetaDExDialog *metaDExTab;
-    MetaDExCancelDialog *cancelTab;
     LelantusDialog *lelantusView;
     QWidget *lelantusPage;
     TransactionView *firoTransactionList;
@@ -120,20 +94,11 @@ private:
     const PlatformStyle *platformStyle;
 
     AutomintNotification *automintNotification;
+    AutomintSparkNotification *automintSparkNotification;
 
 public Q_SLOTS:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
-#ifdef ENABLE_ELYSIUM
-    /** Switch to ExoAssets page */
-    void gotoElyAssetsPage();
-    /** Switch to utility page */
-    void gotoToolboxPage();
-    /** Switch specifically to elysium tx history tab */
-    void gotoElysiumHistoryTab();
-    /** Switch to elysium tx history tab and focus on specific transaction */
-    void focusElysiumTransaction(const uint256& txid);
-#endif
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch specifically to bitcoin tx history tab */
@@ -171,6 +136,9 @@ public Q_SLOTS:
 
     /** Show used sending addresses */
     void usedSendingAddresses();
+
+    void updateAddressbook();
+
     /** Show used receiving addresses */
     void usedReceivingAddresses();
 
@@ -186,18 +154,29 @@ public Q_SLOTS:
     /** Show automint notification */
     void showAutomintNotification();
 
+    void showAutomintSparkNotification();
+
     /** Re-position automint notification */
     void repositionAutomintNotification();
+
+    void repositionAutomintSparkNotification();
 
     /** Check mintable amount to close automint notification */
     void checkMintableAmount(
         CAmount, CAmount, CAmount, CAmount, CAmount, CAmount, CAmount, CAmount, CAmount anonymizableBalance);
 
+    void checkMintableSparkAmount(
+        CAmount, CAmount, CAmount, CAmount, CAmount, CAmount, CAmount, CAmount, CAmount anonymizableBalance);
+
     /** Close automint notification */
     void closeAutomintNotification();
 
+    void closeAutomintSparkNotification();
+
     /** Ask user to do auto mint */
     void askMintAll(AutoMintMode mode);
+
+    void askMintSparkAll(AutoMintSparkMode mode);
 
 Q_SIGNALS:
     /** Signal that we want to show the main window */

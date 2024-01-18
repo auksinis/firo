@@ -25,17 +25,25 @@ pipeline {
                 sh 'mkdir -p dist'
                 sh 'tar -C dist --strip-components=1 -xzf firo-*.tar.gz'
                 dir('dist') {
-                    sh './configure --prefix=`pwd`/../depends/x86_64-linux-gnu --enable-elysium --enable-tests --enable-crash-hooks'
+                    sh './configure --prefix=`pwd`/../depends/x86_64-linux-gnu --enable-tests --enable-crash-hooks'
                     sh 'make -j`nproc`'
                 }
             }
         }
         stage('Test') {
             steps {
-                dir('dist') {
-                    sh 'make check'
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                    dir('dist') {
+                        sh 'make check'
+                    }
                 }
             }
+        }
+        stage('Archive unit tests logs') {
+            steps {
+                archiveArtifacts artifacts: 'dist/src/test-suite.log',
+                allowEmptyArchive: true
+                }
         }
         stage('RPC Tests') {
             steps {

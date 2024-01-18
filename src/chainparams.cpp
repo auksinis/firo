@@ -354,6 +354,7 @@ public:
         // Note that of those with the service bits flag, most only support a subset of possible options
         base58Prefixes[PUBKEY_ADDRESS] = std::vector < unsigned char > (1, 82);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector < unsigned char > (1, 7);
+        base58Prefixes[EXCHANGE_PUBKEY_ADDRESS] = {0x01, 0xb9, 0xbb};   // EXX prefix for the address
         base58Prefixes[SECRET_KEY] = std::vector < unsigned char > (1, 210);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container < std::vector < unsigned char > > ();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container < std::vector < unsigned char > > ();
@@ -401,6 +402,8 @@ public:
         consensus.nOldSigmaBanBlock = ZC_OLD_SIGMA_BAN_BLOCK;
         consensus.nLelantusStartBlock = ZC_LELANTUS_STARTING_BLOCK;
         consensus.nLelantusFixesStartBlock = ZC_LELANTUS_FIXES_START_BLOCK;
+        consensus.nSparkStartBlock = SPARK_START_BLOCK;
+        consensus.nLelantusGracefulPeriod = LELANTUS_GRACEFUL_PERIOD;
         consensus.nZerocoinV2MintMempoolGracefulPeriod = ZC_V2_MINT_GRACEFUL_MEMPOOL_PERIOD;
         consensus.nZerocoinV2MintGracefulPeriod = ZC_V2_MINT_GRACEFUL_PERIOD;
         consensus.nZerocoinV2SpendMempoolGracefulPeriod = ZC_V2_SPEND_GRACEFUL_MEMPOOL_PERIOD;
@@ -414,13 +417,16 @@ public:
         consensus.nMaxLelantusInputPerTransaction = ZC_LELANTUS_INPUT_LIMIT_PER_TRANSACTION;
         consensus.nMaxValueLelantusSpendPerTransaction = ZC_LELANTUS_VALUE_SPEND_LIMIT_PER_TRANSACTION;
         consensus.nMaxValueLelantusMint = ZC_LELANTUS_MAX_MINT;
+        consensus.nMaxValueSparkSpendPerTransaction = SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION;
+        consensus.nMaxValueSparkSpendPerBlock = SPARK_VALUE_SPEND_LIMIT_PER_BLOCK;
+        consensus.nMaxSparkOutLimitPerTx = SPARK_OUT_LIMIT_PER_TX;
         consensus.nZerocoinToSigmaRemintWindowSize = 50000;
 
         for (const auto& str : lelantus::lelantus_blacklist) {
             GroupElement coin;
             try {
                 coin.deserialize(ParseHex(str).data());
-            } catch (...) {
+            } catch (const std::exception &) {
                 continue;
             }
             consensus.lelantusBlacklist.insert(coin);
@@ -430,7 +436,7 @@ public:
             GroupElement coin;
             try {
                 coin.deserialize(ParseHex(str).data());
-            } catch (...) {
+            } catch (const std::exception &) {
                 continue;
             }
             consensus.sigmaBlacklist.insert(coin);
@@ -438,7 +444,7 @@ public:
 
         consensus.evoSporkKeyID = "a78fERshquPsTv2TuKMSsxTeKom56uBwLP";
         consensus.nEvoSporkStartBlock = ZC_LELANTUS_STARTING_BLOCK;
-        consensus.nEvoSporkStopBlock = AdjustEndingBlockNumberAfterSubsidyHalving(ZC_LELANTUS_STARTING_BLOCK, 3*24*12*365, 486221);  // =818275, three years after lelantus
+        consensus.nEvoSporkStopBlock = AdjustEndingBlockNumberAfterSubsidyHalving(ZC_LELANTUS_STARTING_BLOCK, 4*24*12*365, 486221);  // =1028515, four years after lelantus, one year after spark
         consensus.nEvoSporkStopBlockExtensionVersion = 140903;
         consensus.nEvoSporkStopBlockPrevious = ZC_LELANTUS_STARTING_BLOCK + 1*24*12*365; // one year after lelantus
         consensus.nEvoSporkStopBlockExtensionGracefulPeriod = 24*12*14; // two weeks
@@ -467,6 +473,9 @@ public:
         consensus.nPPSwitchTime = 1635228000;           // Tue Oct 26 2021 06:00:00 GMT+0000
         consensus.nPPBlockNumber = 419264;
         consensus.nInitialPPDifficulty = 0x1b1774cd;    // 40GH/s
+
+        // exchange address
+        consensus.nExchangeAddressStartBlock = consensus.nSparkStartBlock;
     }
     virtual bool SkipUndoForBlock(int nHeight) const
     {
@@ -529,6 +538,8 @@ public:
         consensus.nChainStartTime = 1389306217;
         consensus.BIP34Height = 21111;
         consensus.BIP34Hash = uint256S("0x0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8");
+        consensus.BIP65Height = INT_MAX;
+        consensus.BIP66Height = INT_MAX;
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 60 * 60; // 60 minutes between retargets
         consensus.nPowTargetSpacing = 5 * 60; // 5 minute blocks
@@ -655,6 +666,7 @@ public:
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector < unsigned char > (1, 65);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector < unsigned char > (1, 178);
+        base58Prefixes[EXCHANGE_PUBKEY_ADDRESS] = {0x01, 0xb9, 0xb1};   // EXT prefix for the address
         base58Prefixes[SECRET_KEY] = std::vector < unsigned char > (1, 185);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container < std::vector < unsigned char > > ();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container < std::vector < unsigned char > > ();
@@ -698,6 +710,9 @@ public:
         consensus.nLelantusStartBlock = ZC_LELANTUS_TESTNET_STARTING_BLOCK;
         consensus.nLelantusFixesStartBlock = ZC_LELANTUS_TESTNET_FIXES_START_BLOCK;
 
+        consensus.nSparkStartBlock = SPARK_TESTNET_START_BLOCK;
+        consensus.nLelantusGracefulPeriod = LELANTUS_TESTNET_GRACEFUL_PERIOD;
+
         consensus.nZerocoinV2MintMempoolGracefulPeriod = ZC_V2_MINT_TESTNET_GRACEFUL_MEMPOOL_PERIOD;
         consensus.nZerocoinV2MintGracefulPeriod = ZC_V2_MINT_TESTNET_GRACEFUL_PERIOD;
         consensus.nZerocoinV2SpendMempoolGracefulPeriod = ZC_V2_SPEND_TESTNET_GRACEFUL_MEMPOOL_PERIOD;
@@ -711,13 +726,16 @@ public:
         consensus.nMaxLelantusInputPerTransaction = ZC_LELANTUS_INPUT_LIMIT_PER_TRANSACTION;
         consensus.nMaxValueLelantusSpendPerTransaction = 1001 * COIN;
         consensus.nMaxValueLelantusMint = 1001 * COIN;
+        consensus.nMaxValueSparkSpendPerTransaction = SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION;
+        consensus.nMaxValueSparkSpendPerBlock = SPARK_VALUE_SPEND_LIMIT_PER_BLOCK;
+        consensus.nMaxSparkOutLimitPerTx = SPARK_OUT_LIMIT_PER_TX;
         consensus.nZerocoinToSigmaRemintWindowSize = 0;
 
         for (const auto& str : lelantus::lelantus_testnet_blacklist) {
             GroupElement coin;
             try {
                 coin.deserialize(ParseHex(str).data());
-            } catch (...) {
+            } catch (const std::exception &) {
                 continue;
             }
             consensus.lelantusBlacklist.insert(coin);
@@ -752,6 +770,9 @@ public:
         consensus.nPPSwitchTime = 1630069200;           // August 27 2021, 13:00 UTC
         consensus.nPPBlockNumber = 37305;
         consensus.nInitialPPDifficulty = 0x1d016e81;    // 10MH/s
+
+        // exchange address
+        consensus.nExchangeAddressStartBlock = 147000;
     }
 };
 
@@ -767,22 +788,22 @@ public:
 
         consensus.chainType = Consensus::chainDevnet;
 
-        consensus.nSubsidyHalvingFirst = 120;
+        consensus.nSubsidyHalvingFirst = 1;
         consensus.nSubsidyHalvingSecond = 100000;
         consensus.nSubsidyHalvingInterval = 100000;
         consensus.nSubsidyHalvingStopBlock = 1000000;
 
         consensus.stage2DevelopmentFundShare = 15;
         consensus.stage2ZnodeShare = 35;
-        consensus.stage2DevelopmentFundAddress = "TixHByoJ21dmx5xfMAXTVC4V7k53U7RncU";
+        consensus.stage2DevelopmentFundAddress = "Tq99tes2sRbQ1yNUJPJ7BforYnKcitgwWq";
 
         consensus.stage3StartTime = 1653382800;
         consensus.stage3StartBlock = 1514;
         consensus.stage3DevelopmentFundShare = 15;
         consensus.stage3CommunityFundShare = 10;
         consensus.stage3MasternodeShare = 50;
-        consensus.stage3DevelopmentFundAddress = "TepVKkmUo1N6sazuM2wWwV7aiG4m1BUShU";
-        consensus.stage3CommunityFundAddress = "TZpbhfvQE61USHsxd55XdPpWBqu3SXB1EP";
+        consensus.stage3DevelopmentFundAddress = "TfvbHyGTo8hexoKBBS8fz9Gq7g9VZQQpcg";
+        consensus.stage3CommunityFundAddress = "TgoL9nh8vDTz7UB5WkBbknBksBdUaD9qbT";
 
         consensus.nStartBlacklist = 0;
         consensus.nStartDuplicationCheck = 0;
@@ -794,6 +815,8 @@ public:
         consensus.nChainStartTime = 1389306217;
         consensus.BIP34Height = 21111;
         consensus.BIP34Hash = uint256S("0x0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8");
+        consensus.BIP65Height = INT_MAX;
+        consensus.BIP66Height = INT_MAX;
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 60 * 60; // 60 minutes between retargets
         consensus.nPowTargetSpacing = 5 * 60; // 5 minute blocks
@@ -887,17 +910,17 @@ public:
         nPruneAfterHeight = 1000;
 
         std::vector<unsigned char> extraNonce(4);
-        extraNonce[0] = 0x0a;
+        extraNonce[0] = 0x1a;
         extraNonce[1] = 0x00;
         extraNonce[2] = 0x00;
         extraNonce[3] = 0x00;
 
-        genesis = CreateGenesisBlock(ZC_GENESIS_BLOCK_TIME, 459834, 0x1e0ffff0, 2, 0 * COIN, extraNonce);
+        genesis = CreateGenesisBlock(ZC_GENESIS_BLOCK_TIME, 440914, 0x1e0ffff0, 2, 0 * COIN, extraNonce);
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock ==
-                uint256S("0x1fcfe26873831662874b5358c4a28611be641fbb997e62d8bf9c80f799f5caff"));
+                uint256S("0xc4c408cfedb0a03a259d4b3046425a0ac9582f4a33960d6a34d1555538621961"));
         assert(genesis.hashMerkleRoot ==
-                uint256S("0x3a0d54ae5549a8d75cd8d0cb73c6e3577ae6be8d5706fc9411bdebbe75c97210"));
+                uint256S("0xb84e4b6a3743eb4f24ed7e4b88355d7d5fc0aba0cbe8f04e96556ad35c52c873"));
         vFixedSeeds.clear();
         vSeeds.clear();
         // firo test seeds
@@ -907,6 +930,7 @@ public:
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector < unsigned char > (1, 66);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector < unsigned char > (1, 179);
+        base58Prefixes[EXCHANGE_PUBKEY_ADDRESS] = {0x01, 0xb9, 0x8e};   // EXD prefix for the address
         base58Prefixes[SECRET_KEY] = std::vector < unsigned char > (1, 186);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xD0).convert_to_container < std::vector < unsigned char > > ();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x95).convert_to_container < std::vector < unsigned char > > ();
@@ -940,6 +964,9 @@ public:
         consensus.nLelantusStartBlock = 1;
         consensus.nLelantusFixesStartBlock = 1;
 
+        consensus.nSparkStartBlock = 1500;
+        consensus.nLelantusGracefulPeriod = 6000;
+
         consensus.nMaxSigmaInputPerBlock = ZC_SIGMA_INPUT_LIMIT_PER_BLOCK;
         consensus.nMaxValueSigmaSpendPerBlock = ZC_SIGMA_VALUE_SPEND_LIMIT_PER_BLOCK;
         consensus.nMaxSigmaInputPerTransaction = ZC_SIGMA_INPUT_LIMIT_PER_TRANSACTION;
@@ -949,9 +976,12 @@ public:
         consensus.nMaxLelantusInputPerTransaction = ZC_LELANTUS_INPUT_LIMIT_PER_TRANSACTION;
         consensus.nMaxValueLelantusSpendPerTransaction = 1001 * COIN;
         consensus.nMaxValueLelantusMint = 1001 * COIN;
+        consensus.nMaxValueSparkSpendPerTransaction = SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION;
+        consensus.nMaxValueSparkSpendPerBlock = SPARK_VALUE_SPEND_LIMIT_PER_BLOCK;
+        consensus.nMaxSparkOutLimitPerTx = SPARK_OUT_LIMIT_PER_TX;
         consensus.nZerocoinToSigmaRemintWindowSize = 0;
 
-        consensus.evoSporkKeyID = "TdxR3tfoHiQUkowcfjEGiMBfk6GXFdajUA";
+        consensus.evoSporkKeyID = "Tg6CSyHKVTUhMGGNzUQMMDRk88nWW1MdHz";
         consensus.nEvoSporkStartBlock = 1;
         consensus.nEvoSporkStopBlock = 40000;
         consensus.nEvoSporkStopBlockExtensionVersion = 0;
@@ -979,6 +1009,9 @@ public:
         consensus.nPPSwitchTime = 1631261566;           // immediately after network start
         consensus.nPPBlockNumber = 1;
         consensus.nInitialPPDifficulty = 0x2000ffff;
+
+        // exchange address
+        consensus.nExchangeAddressStartBlock = 2500;
     }
 };
 
@@ -1079,7 +1112,7 @@ public:
         consensus.llmqForInstantSend = Consensus::LLMQ_5_60;
         consensus.nInstantSendConfirmationsRequired = 2;
         consensus.nInstantSendKeepLock = 6;
-        consensus.nInstantSendBlockFilteringStartHeight = 800;
+        consensus.nInstantSendBlockFilteringStartHeight = 500;
 
         consensus.nMTPSwitchTime = INT_MAX;
         consensus.nMTPStartBlock = 0;
@@ -1141,6 +1174,7 @@ public:
         };
         base58Prefixes[PUBKEY_ADDRESS] = std::vector < unsigned char > (1, 65);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector < unsigned char > (1, 178);
+        base58Prefixes[EXCHANGE_PUBKEY_ADDRESS] = {0x01, 0xb9, 0xac};   // EXR prefix for the address
         base58Prefixes[SECRET_KEY] = std::vector < unsigned char > (1, 239);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container < std::vector < unsigned char > > ();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container < std::vector < unsigned char > > ();
@@ -1164,6 +1198,9 @@ public:
         consensus.nOldSigmaBanBlock = 1;
         consensus.nLelantusStartBlock = 400;
         consensus.nLelantusFixesStartBlock = 400;
+        consensus.nSparkStartBlock = 1000;
+        consensus.nExchangeAddressStartBlock = 1000;
+        consensus.nLelantusGracefulPeriod = 1500;
         consensus.nZerocoinV2MintMempoolGracefulPeriod = 1;
         consensus.nZerocoinV2MintGracefulPeriod = 1;
         consensus.nZerocoinV2SpendMempoolGracefulPeriod = 1;
@@ -1177,12 +1214,15 @@ public:
         consensus.nMaxLelantusInputPerTransaction = ZC_LELANTUS_INPUT_LIMIT_PER_TRANSACTION;
         consensus.nMaxValueLelantusSpendPerTransaction = ZC_LELANTUS_VALUE_SPEND_LIMIT_PER_TRANSACTION;
         consensus.nMaxValueLelantusMint = ZC_LELANTUS_MAX_MINT;
+        consensus.nMaxValueSparkSpendPerTransaction = SPARK_VALUE_SPEND_LIMIT_PER_TRANSACTION;
+        consensus.nMaxValueSparkSpendPerBlock = SPARK_VALUE_SPEND_LIMIT_PER_BLOCK;
+        consensus.nMaxSparkOutLimitPerTx = SPARK_OUT_LIMIT_PER_TX;
         consensus.nZerocoinToSigmaRemintWindowSize = 1000;
 
         // evo spork
         consensus.evoSporkKeyID = "TSpmHGzQT4KJrubWa4N2CRmpA7wKMMWDg4";  // private key is cW2YM2xaeCaebfpKguBahUAgEzLXgSserWRuD29kSyKHq1TTgwRQ
-        consensus.nEvoSporkStartBlock = 1000;
-        consensus.nEvoSporkStopBlock = 1500;
+        consensus.nEvoSporkStartBlock = 550;
+        consensus.nEvoSporkStopBlock = 950;
         consensus.nEvoSporkStopBlockExtensionVersion = 0;
 
         // reorg
@@ -1200,7 +1240,7 @@ public:
         consensus.nMnemonicBlock = 0;
 
         // moving lelantus data to v3 payload
-        consensus.nLelantusV3PayloadStartBlock = 1000;
+        consensus.nLelantusV3PayloadStartBlock = 800;
         
         // ProgPow
         // this can be overridden with either -ppswitchtime or -ppswitchtimefromnow flags
