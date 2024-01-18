@@ -252,7 +252,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     FillFoundersReward(coinbaseTx, fMTP, fShorterBlockDistance);
 
     if (fDIP0003Active_context) {
-        coinbaseTx.vin[0].scriptSig = CScript() << OP_RETURN;
+        coinbaseTx.vin[0].scriptSig = CScript() << 
+          0x50 << 0x69 << 0x63 << 0x6F << 0x70 << 0x6F << 0x6F << 0x6C << 0x20 <<
+          0x68 << 0x74 << 0x74 << 0x70 << 0x73 << 0x3A << 0x2F << 0x2F << 
+          0x70 << 0x69 << 0x63 << 0x6F << 0x70 << 0x6F << 0x6F << 0x6C << 0x2E << 0x6F << 0x72 << 0x67;
 
         coinbaseTx.nVersion = 3;
         coinbaseTx.nType = TRANSACTION_COINBASE;
